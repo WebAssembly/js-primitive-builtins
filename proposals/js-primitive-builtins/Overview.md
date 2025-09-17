@@ -103,7 +103,7 @@ For more context, you may want to revisit [the notes](https://github.com/WebAsse
 
 ### Are the importable functions worth it?
 
-`parseFloat`, `Object.is`, `Math.sin` et al., can already be imported with acceptable signatures today.
+`parseFloat`, `parseInt`, `Object.is`, `Math.sin` et al., can already be imported with acceptable signatures today.
 Is it worth adding them as builtins?
 Should we instead "strongly encourage" JS embeddings to recognize them at instantiation time and optimize them accordingly?
 
@@ -117,9 +117,19 @@ Some languages with big integers provide direct conversions to/from bit arrays:
 
 Should we also add all those conversions to `wasm:js-bigint`?
 
-### `toString` and parsing with radix
+### `toString` and parsing with radix for `i32` and `i64`
 
 Should we expose the integer parsing and formatting methods that take an explicit radix?
+
+For `i32`, this corresponds to `parseInt(string, radix)` and `Number.prototype.toString(radix)`.
+V8 already contains dedicated code to recognize the latter, when hidden behind a bound `Function.prototype.call`; that suggests that there is already a strong incentive to support conversion of `i32` to string with radix as a builtin.
+`parseInt` is importable as is, as mentioned above.
+
+For `i64`, that is not technically supported by JS today.
+JS does not have radix support for `bigint`s, and the way `i64` features are justified in this proposal is that they are presented as `bigint`s on the JS side.
+However, we may want to support them as builtins for consistency with `i32`.
+
+It is not a goal to provide full `bigint` support here.
 
 ## Specifications
 
