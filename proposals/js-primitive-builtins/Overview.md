@@ -42,7 +42,6 @@ The purpose of including them here is to have some sort of guarantee that they *
     * Create from primitive: `fromF64`, `fromI32`, `fromU32`
     * Extract to primitive: `toF64`, `toI32`, `toU32`
     * JS primitive operations: `fmod` (the `%` operator), `wrapToI32` (`x | 0`)
-    * Math operations: `sin`, `cos`, etc. (the ones that have hardware equivalents, at least)
     * Parsing: `parse`
 * Boolean (`wasm:js-boolean`):
     * Type test: `test`
@@ -103,9 +102,14 @@ For more context, you may want to revisit [the notes](https://github.com/WebAsse
 
 ### Are the importable functions worth it?
 
-`parseFloat`, `parseInt`, `Object.is`, `Math.sin` et al., can already be imported with acceptable signatures today.
+`parseFloat`, `parseInt` and `Object.is` can already be imported with acceptable signatures today.
 Is it worth adding them as builtins?
 Should we instead "strongly encourage" JS embeddings to recognize them at instantiation time and optimize them accordingly?
+
+History: Methods of `Math` like `Math.sin` were already removed, compared to earlier drafts of this proposal, on those grounds.
+
+Caveat for `parseFloat` and `parseInt`: they may have to invoke arbitrary user-defined JS code through `ToString()` of their string argument.
+The `Math` functions do not have that caveat because their arguments are typed as `f64` and are therefore guaranteed not to need a `ToNumber()` call, despite their spec.
 
 ### Conversions of `bigint`s to/from bit arrays
 
@@ -387,24 +391,6 @@ func wrapToI32(
 ```
 
 Note that a hypothetical `wrapToU32` would be exactly equivalent, and hence is not proposed.
-
-### "wasm:js-number" "sin" (and other similar `Math` operations)
-
-Can be imported as is. Included for "guaranteed" no-glue-code calls.
-
-Can also be implemented in pure Wasm, although that misses the opportunity to leveral relevant hardward support, where available.
-
-```js
-func sin(
-  x: f64
-) -> f64 {
-  return Math.sin(x);
-}
-```
-
-This set of builtins is particularly debated.
-It has been suggested that compilers prefer software implementations for performance reasons.
-If that is indeed the case, there is no real benefit to proposing them as builtins, as opposed to implementing them on the Wasm side.
 
 ### "wasm:js-number" "parse"
 
