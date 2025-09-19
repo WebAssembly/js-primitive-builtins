@@ -35,12 +35,12 @@ At least, their semantics are such that the engines are allowed to.
 The purpose of including them here is to have some sort of guarantee that they *will* be optimized without a round-trip to JS land.
 
 * String (extensions to the existing `wasm:js-string`):
-    * Conversion from primitive numeric types: `fromI32`, `fromU32`, `fromI64`, `fromU64`, `fromF32`, `fromF64`
+    * Conversion from primitive numeric types: `fromI32`, `fromU32`, `fromI64`, `fromU64`, `fromF64`
     * Unicode-aware case conversions: `toLowerCase`, `toUpperCase`
 * Number (`wasm:js-number`):
-    * Type test: `test`, `testF32`, `testI32`, `testU32`
-    * Create from primitive: `fromF64`, `fromF32`, `fromI32`, `fromU32`
-    * Extract to primitive: `toF64`, `toF32`, `toI32`, `toU32`
+    * Type test: `test`, `testI32`, `testU32`
+    * Create from primitive: `fromF64`, `fromI32`, `fromU32`
+    * Extract to primitive: `toF64`, `toI32`, `toU32`
     * JS primitive operations: `fmod` (the `%` operator), `wrapToI32` (`x | 0`)
     * Math operations: `sin`, `cos`, etc. (the ones that have hardware equivalents, at least)
     * Parsing: `parse`
@@ -187,18 +187,6 @@ func fromU64(
 }
 ```
 
-### "wasm:js-string" "fromF32"
-
-Note: This can be implemented without additional overhead with `f64.promote_f32`+`fromF64`, so it is probably not needed.
-
-```js
-func fromF32(
-  x: f32
-) -> (ref extern) {
-  return "" + x;
-}
-```
-
 ### "wasm:js-string" "fromF64"
 
 ```js
@@ -252,22 +240,6 @@ func test(
 }
 ```
 
-### "wasm:js-number" "testF32"
-
-Could be implemented on the Wasm side using `testF64` and `toF64`.
-
-```js
-func testF32(
-  x: externref
-) -> i32 {
-  if (typeof x !== "number")
-    return 0;
-  if (Math.fround(x) !== x && x === x) // note: do not reject NaN
-    return 0;
-  return 1;
-}
-```
-
 ### "wasm:js-number" "testI32"
 
 Technically implementable using `testF64`, `toF64`, and additional Wasm instructions.
@@ -311,18 +283,6 @@ func fromF64(
 }
 ```
 
-### "wasm:js-number" "fromF32"
-
-Note: Could be implemented with `f64.promote_f32` and `fromF64` without additional overhead, so it might not be needed, unless there is evidence that some engines convert 32-bit floats more efficiently than 64-bit floats.
-
-```js
-func fromF32(
-  x: f32
-) -> (ref extern) {
-  return x;
-}
-```
-
 ### "wasm:js-number" "fromI32"
 
 ```js
@@ -358,27 +318,6 @@ func toF64(
   x: externref
 ) -> f64 {
   if (typeof x !== "number")
-    trap();
-
-  return x;
-}
-```
-
-### "wasm:js-number" "toF32"
-
-Could be implemented with `toF64` and additional code on the Wasm side.
-
-```js
-func toF32(
-  x: externref
-) -> f32 {
-  if (typeof x !== "number")
-    trap();
-
-  // NOTE: alternative semantics would be *not* to perform that test, and let
-  // ToWebAssemblyValue demote to f32 instead. But then it is equivalent to
-  // doing `toF64`+`f32.demote_f64`, so there is not much point.
-  if (Math.fround(x) !== x && x === x)
     trap();
 
   return x;
