@@ -111,16 +111,6 @@ History: Methods of `Math` like `Math.sin` were already removed, compared to ear
 Caveat for `parseFloat` and `parseInt`: they may have to invoke arbitrary user-defined JS code through `ToString()` of their string argument.
 The `Math` functions do not have that caveat because their arguments are typed as `f64` and are therefore guaranteed not to need a `ToNumber()` call, despite their spec.
 
-### Conversions of `bigint`s to/from bit arrays
-
-Some languages with big integers provide direct conversions to/from bit arrays:
-
-* as `i8` arrays, `i32` arrays and/or `i64` arrays,
-* in little endian and/or big endian, and
-* in two's complement representation or in sign-magnitude representation.
-
-Should we also add all those conversions to `wasm:js-bigint`?
-
 ### `toString` and parsing with radix for `i32` and `i64`
 
 Should we expose the integer parsing and formatting methods that take an explicit radix?
