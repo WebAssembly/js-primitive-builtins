@@ -57,8 +57,6 @@ In the expanded specifications below, we will mark the functions that we conside
     * Wrapping operations: `asIntN`, `asUintN`
     * Parsing: `parse`
     * Conversion to string: `toString`
-* Generic (`wasm:js-object`):
-    * Conversion to string as if in string concat: `toString`
 
 ## About the "universal representation"
 
@@ -649,23 +647,6 @@ func toString(
   return "" + bigint;
 }
 ```
-
-### "wasm:js-object" "toString"
-
-```js
-func toString(
-  x: externref
-) -> (ref extern) {
-  return "" + x;
-}
-```
-
-This builtin is probably the most controversial.
-Unlike all the other builtins mentioned in this proposal, it *can* invoke arbitrary JS code.
-
-It is also debatable whether to use string concatanation semantics (`"" + x`) or explicit conversion to string (`String(x)`).
-This makes a difference for `symbol`s: they throw in the former case but succeed in the latter case.
-This ambiguity adds to the debate of whether this builtin is worth it.
 
 ## Not included
 
