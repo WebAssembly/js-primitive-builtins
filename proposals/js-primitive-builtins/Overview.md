@@ -36,7 +36,6 @@ In the expanded specifications below, we will mark the functions that we conside
     * Type test: `test`, `testI32`, `testU32`
     * Create from primitive: `fromF64`, `fromI32`, `fromU32`
     * Extract to primitive: `toF64`, `toI32`, `toU32`
-    * JS primitive operations: `fmod` (the `%` operator), `wrapToI32` (`x | 0`)
 * Boolean (`wasm:js-boolean`):
     * Type test: `test`
     * (creation is efficiently achieved by importing `true` and `false` as `global`s)
@@ -57,8 +56,6 @@ In the expanded specifications below, we will mark the functions that we conside
     * Wrapping operations: `asIntN`, `asUintN`
     * Parsing: `parse`
     * Conversion to string: `toString`
-* Generic (`wasm:js-object`):
-    * Conversion to string as if in string concat: `toString`
 
 ## About the "universal representation"
 
@@ -336,33 +333,6 @@ func toU32(
   return x;
 }
 ```
-
-### "wasm:js-number" "fmod"
-
-Can be implemented in pure Wasm, although that misses the opportunity to leverage hardware `fprem` instructions, where they exist.
-
-```js
-func fmod(
-  x: f64,
-  y: f64
-) -> f64 {
-  return x % y;
-}
-```
-
-### "wasm:js-number" "wrapToI32"
-
-Can be implemented in pure Wasm, although that misses the opportunity to leverage hardware `FJCVTZS` instructions, where they exist.
-
-```js
-func wrapToI32(
-  x: f64
-) -> i32 {
-  return x | 0;
-}
-```
-
-Note that a hypothetical `wrapToU32` would be exactly equivalent, and hence is not proposed.
 
 ### "wasm:js-boolean" "test"
 
@@ -650,23 +620,6 @@ func toString(
 }
 ```
 
-### "wasm:js-object" "toString"
-
-```js
-func toString(
-  x: externref
-) -> (ref extern) {
-  return "" + x;
-}
-```
-
-This builtin is probably the most controversial.
-Unlike all the other builtins mentioned in this proposal, it *can* invoke arbitrary JS code.
-
-It is also debatable whether to use string concatanation semantics (`"" + x`) or explicit conversion to string (`String(x)`).
-This makes a difference for `symbol`s: they throw in the former case but succeed in the latter case.
-This ambiguity adds to the debate of whether this builtin is worth it.
-
 ## Not included
 
 This section keeps track of a few things that were considered at some point but removed, although a case could still be made to bring them back.
@@ -682,3 +635,9 @@ Likewise, we had considered methods of `Math` like `Math.sin`.
 Caveat for `parseFloat` and `parseInt`: they may have to invoke arbitrary user-defined JS code through `ToString()` of their string argument.
 Their builtin equivalent could have avoided that by only accepting real `string`s instead.
 However, that was not deemed a good enough benefit.
+
+### JS operators `x % y` and `x | 0`
+
+These operators may receive (partial) support from dedicated hardward instructions: `fprem` for `x % y`, and the ARM-specific `FJCVTZS` for `x | 0`.
+They could therefore be useful as builtins.
+However, if we wanted to expose them to Wasm, actual Wasm opcodes would probably be a better avenue.
