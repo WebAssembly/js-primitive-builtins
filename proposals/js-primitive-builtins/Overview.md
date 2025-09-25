@@ -29,11 +29,6 @@ Here is a quick overview of the builtins we propose.
 Currently, the set is intentionally fairly broad, so that we can discuss what is actually useful and what might be overreaching.
 In the expanded specifications below, we will mark the functions that we consider particularly important, based on our experience with Scala.js.
 
-Some of those functions can be *directly* imported, because they do not rely on their `this` value (ex.: `parseFloat`, `sin`, `Object.is`).
-These may already be optimized accurately by JS engines if they are used as is.
-At least, their semantics are such that the engines are allowed to.
-The purpose of including them here is to have some sort of guarantee that they *will* be optimized without a round-trip to JS land.
-
 * String (extensions to the existing `wasm:js-string`):
     * Conversion from primitive numeric types: `fromI32`, `fromU32`, `fromI64`, `fromU64`, `fromF64`
     * Unicode-aware case conversions: `toLowerCase`, `toUpperCase`
@@ -42,7 +37,6 @@ The purpose of including them here is to have some sort of guarantee that they *
     * Create from primitive: `fromF64`, `fromI32`, `fromU32`
     * Extract to primitive: `toF64`, `toI32`, `toU32`
     * JS primitive operations: `fmod` (the `%` operator), `wrapToI32` (`x | 0`)
-    * Parsing: `parse`
 * Boolean (`wasm:js-boolean`):
     * Type test: `test`
     * (creation is efficiently achieved by importing `true` and `false` as `global`s)
@@ -64,7 +58,6 @@ The purpose of including them here is to have some sort of guarantee that they *
     * Parsing: `parse`
     * Conversion to string: `toString`
 * Generic (`wasm:js-object`):
-    * JS same-value: `is` (`Object.is`)
     * Conversion to string as if in string concat: `toString`
 
 ## About the "universal representation"
@@ -100,30 +93,19 @@ For more context, you may want to revisit [the notes](https://github.com/WebAsse
 
 ## Open questions
 
-### Are the importable functions worth it?
+### `toString` with radix for `i32` and `i64`
 
-`parseFloat`, `parseInt` and `Object.is` can already be imported with acceptable signatures today.
-Is it worth adding them as builtins?
-Should we instead "strongly encourage" JS embeddings to recognize them at instantiation time and optimize them accordingly?
+Should we expose the integer ormatting methods that take an explicit radix?
 
-History: Methods of `Math` like `Math.sin` were already removed, compared to earlier drafts of this proposal, on those grounds.
-
-Caveat for `parseFloat` and `parseInt`: they may have to invoke arbitrary user-defined JS code through `ToString()` of their string argument.
-The `Math` functions do not have that caveat because their arguments are typed as `f64` and are therefore guaranteed not to need a `ToNumber()` call, despite their spec.
-
-### `toString` and parsing with radix for `i32` and `i64`
-
-Should we expose the integer parsing and formatting methods that take an explicit radix?
-
-For `i32`, this corresponds to `parseInt(string, radix)` and `Number.prototype.toString(radix)`.
-V8 already contains dedicated code to recognize the latter, when hidden behind a bound `Function.prototype.call`; that suggests that there is already a strong incentive to support conversion of `i32` to string with radix as a builtin.
-`parseInt` is importable as is, as mentioned above.
+For `i32`, this corresponds to `Number.prototype.toString(radix)`.
+V8 already contains dedicated code to recognize it, when hidden behind a bound `Function.prototype.call`; that suggests that there is already a strong incentive to support conversion of `i32` to string with radix as a builtin.
 
 For `i64`, that is not technically supported by JS today.
 JS does not have radix support for `bigint`s, and the way `i64` features are justified in this proposal is that they are presented as `bigint`s on the JS side.
-However, we may want to support them as builtins for consistency with `i32`.
 
-It is not a goal to provide full `bigint` support here.
+The inconcistency between `i32` and `i64` suggests *not* to include them at this time.
+
+Regardless, it is not a goal to provide full `bigint` support here.
 
 ## Specifications
 
@@ -381,28 +363,6 @@ func wrapToI32(
 ```
 
 Note that a hypothetical `wrapToU32` would be exactly equivalent, and hence is not proposed.
-
-### "wasm:js-number" "parse"
-
-Can be imported as is as `parseFloat`, except that `parseFloat` calls `ToString()` on its argument, rather than rejecting non-strings.
-The exact behavior of the proposed builtin can be achieved by calling `"wasm:js-string" "cast"` before calling `parseFloat`.
-Included for "guaranteed" no-glue-code calls.
-
-```js
-func parse(
-  string: externref
-) -> f64 {
-  if (typeof string !== "string")
-    trap();
-
-  return parseFloat(string);
-}
-```
-
-Note: we do not propose `parseInt`, as it can be efficiently implemented on the Wasm side based on existing JS string builtins.
-Moreover, languages tend to disagree on the specifics of the format anyway, which makes it a poor common ground.
-`parseFloat` is more critical, as efficient implementations require big tables, which we do not want to ship along with our Wasm code.
-At the same time, its semantics are more widely shared across languages.
 
 ### "wasm:js-boolean" "test"
 
@@ -690,24 +650,6 @@ func toString(
 }
 ```
 
-### "wasm:js-object" "is"
-
-This function is the closest thing to an identity test that applies to the universal representation on a JS host.
-
-Can be imported as is.
-Included for "guaranteed" no-glue-code calls.
-
-```js
-func is(
-  x: externref,
-  y: externref
-) -> i32 {
-  if (Object.is(x, y))
-    return 1;
-  return 0;
-}
-```
-
 ### "wasm:js-object" "toString"
 
 ```js
@@ -724,3 +666,19 @@ Unlike all the other builtins mentioned in this proposal, it *can* invoke arbitr
 It is also debatable whether to use string concatanation semantics (`"" + x`) or explicit conversion to string (`String(x)`).
 This makes a difference for `symbol`s: they throw in the former case but succeed in the latter case.
 This ambiguity adds to the debate of whether this builtin is worth it.
+
+## Not included
+
+This section keeps track of a few things that were considered at some point but removed, although a case could still be made to bring them back.
+
+### Functions that can be imported as is
+
+We considered builtins for `parseFloat`, `parseInt` and `Object.is`.
+However, they can already be imported with acceptable signatures today, with their exact identity.
+This means engines can already detect them, and optimize them if they deem it useful.
+
+Likewise, we had considered methods of `Math` like `Math.sin`.
+
+Caveat for `parseFloat` and `parseInt`: they may have to invoke arbitrary user-defined JS code through `ToString()` of their string argument.
+Their builtin equivalent could have avoided that by only accepting real `string`s instead.
+However, that was not deemed a good enough benefit.
