@@ -52,7 +52,6 @@ In the expanded specifications below, we will mark the functions that we conside
     * Create from primitive: `fromF64`, `fromI64`, `fromU64`
     * Extract to primitive: `convertToF64`, `wrapToI64`
     * Operations: `add`, `pow`, `shl`, etc. (the ones corresponding to JS operators)
-    * Wrapping operations: `asIntN`, `asUintN`
     * Conversion to string: `toString`
 
 ## About the "universal representation"
@@ -490,6 +489,8 @@ func wrapToI64(
 }
 ```
 
+A hypothetical `wrapToU64` would be equivalent, and is therefore not proposed.
+
 ### "wasm:js-bigint" "add" (and other JS operators)
 
 ```js
@@ -506,39 +507,45 @@ func add(
 }
 ```
 
-### "wasm:js-bigint" "asIntN"
+The full list of considered operators and corresponding function names are the following.
+See [Table 2 in Numeric Types](https://262.ecma-international.org/#sec-numeric-types) in the ECMAScript specification.
+
+| JS operator | Builtin name |
+|-------------|--------------|
+| `-x`        | `neg`        |
+| `~x`        | `not`        |
+| `x ** y`    | `pow`        |
+| `x * y`     | `mul`        |
+| `x / y`     | `div`        |
+| `x % y`     | `mod`        |
+| `x + y`     | `add`        |
+| `x - y`     | `sub`        |
+| `x << y`    | `shl`        |
+| `x >> y`    | `sar`        |
+| `x === y`   | `equals`     |
+| `x & y`     | `and`        |
+| `x ^ y`     | `xor`        |
+| `x \| y`    | `or`         |
+
+### "wasm:js-bigint" "compare"
+
+For consistency with JS String Builtins, we provide a single comparison builtin instead of the 4 operators `<`, `>`, `<=` and `>=`.
 
 ```js
-func asIntN(
-  bits: i32,
-  bigint: externref
+func compared(
+  x: externref,
+  y: externref
 ) -> f64 {
-  if (typeof bigint !== "bigint")
+  if (typeof x !== "bigint")
+    trap();
+  if (typeof y !== "bigint")
     trap();
 
-  // NOTE: `bits` is interpreted as signed 32-bit integers when converted to a
-  // JS value using standard conversions. Reinterpret it as unsigned here.
-  bits >>>= 0;
-
-  return BigInt.asIntN(bits, bigint);
-}
-```
-
-### "wasm:js-bigint" "asUintN"
-
-```js
-func asUintN(
-  bits: i32,
-  bigint: externref
-) -> f64 {
-  if (typeof bigint !== "bigint")
-    trap();
-
-  // NOTE: `bits` is interpreted as signed 32-bit integers when converted to a
-  // JS value using standard conversions. Reinterpret it as unsigned here.
-  bits >>>= 0;
-
-  return BigInt.asUintN(bits, bigint);
+  if (x < y)
+    return -1;
+  if (x > y)
+    return 1;
+  return 0;
 }
 ```
 
