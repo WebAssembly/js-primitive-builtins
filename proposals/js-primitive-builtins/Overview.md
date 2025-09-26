@@ -46,8 +46,8 @@ In the expanded specifications below, we will mark the functions that we conside
 * Symbol (`wasm:js-symbol`):
     * Type test: `test`
     * Identity test: `equals`
-    * Creation as if by `Symbol(description)` or `Symbol.for(key)`
-    * Extraction of the `description` and the `key`
+    * (creation is achieved by importing the functions `Symbol` and `Symbol.for`)
+    * Extraction of the `description`
 * Bigint (`wasm:js-bigint`):
     * Type test: `test`
     * Create from primitive: `fromF64`, `fromI64`, `fromU64`
@@ -400,32 +400,6 @@ func equals(
 }
 ```
 
-### "wasm:js-symbol" "unique"
-
-```js
-func unique(
-  description: externref
-) -> externref {
-  if (typeof description !== "string" && description !== null)
-    trap();
-  if (description === null)
-    return Symbol();
-  return Symbol(description);
-}
-```
-
-### "wasm:js-symbol" "for"
-
-```js
-func forKey(
-  key: externref
-) -> externref {
-  if (typeof key !== "string")
-    trap();
-  return Symbol.for(key);
-}
-```
-
 ### "wasm:js-symbol" "description"
 
 ```js
@@ -438,21 +412,6 @@ func description(
   if (typeof description === 'undefined')
     return null;
   return description;
-}
-```
-
-### "wasm:js-symbol" "keyFor"
-
-```js
-func keyFor(
-  x: externref
-) -> externref {
-  if (typeof x !== "symbol")
-    return trap();
-  const key = Symbol.keyFor(x);
-  if (typeof key === 'undefined')
-    return null;
-  return key;
 }
 ```
 
@@ -641,3 +600,12 @@ However, that was not deemed a good enough benefit.
 These operators may receive (partial) support from dedicated hardward instructions: `fprem` for `x % y`, and the ARM-specific `FJCVTZS` for `x | 0`.
 They could therefore be useful as builtins.
 However, if we wanted to expose them to Wasm, actual Wasm opcodes would probably be a better avenue.
+
+### More on Symbols
+
+Creation of symbols is achieved with the functions `Symbol` and `Symbol.for`.
+These can be imported as is.
+
+Extraction of the key of a symbol is, on a naive look similar: `Symbol.keyFor` can be imported as is.
+However, it returns `undefined` when the given symbol has no associated key.
+`undefined` can be tested after the fact with `"wasm:js-undefined" "test"`.
