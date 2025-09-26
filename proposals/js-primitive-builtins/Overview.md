@@ -24,10 +24,11 @@ Builtins should be simple and only provide functionality that is semantically al
 The proposed list of builtins is based on experience with the Scala.js-to-Wasm compiler.
 Through benchmarking and profiling, we have identified a number of operations that show up high on profiles for no good reason, other than they require glue code to JavaScript.
 We have extrapolated to some additional operations that we think are likely relevant to other toolchains.
+The `bigint` were requested by the `wasm_of_caml` toolchain.
 
 Here is a quick overview of the builtins we propose.
-Currently, the set is intentionally fairly broad, so that we can discuss what is actually useful and what might be overreaching.
-In the expanded specifications below, we will mark the functions that we consider particularly important, based on our experience with Scala.js.
+The original set was fairly broad, so that we could discuss what is actually useful and what might be overreaching.
+During Stage 1 discussions, the set was significantly reduced.
 
 * String (extensions to the existing `wasm:js-string`):
     * Conversion from primitive numeric types: `fromI32`, `fromU32`, `fromI64`, `fromU64`, `fromF64`
@@ -84,6 +85,8 @@ However, the conversions between `anyref` and JS are dictated by the JS embeddin
 That means the universal representation of an `i32` must already be a JS `number`.
 
 For more context, you may want to revisit [the notes](https://github.com/WebAssembly/meetings/blob/main/main/2024/CG-06.md#experience-report-compiling-scalajs-to-wasm-s%C3%A9bastien-doeraene) and [slides](https://docs.google.com/presentation/d/1PPAyjOAJrSi6HvZ39uknIDX0fn23u9I8MWLWw9RQMpE/edit?usp=sharing) of the Scala.js experience report that we gave during the June 2024 hybrid CG meeting.
+
+There is more discussion on this topic in [issue #6](https://github.com/WebAssembly/js-primitive-builtins/issues/6), although the original title and post were about more targeted concerns that have since been addressed.
 
 ## Open questions
 
