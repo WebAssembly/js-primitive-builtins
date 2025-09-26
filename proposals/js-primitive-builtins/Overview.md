@@ -171,6 +171,17 @@ func fromF64(
 }
 ```
 
+In general, languages don't necessarily agree on the exact string coming out of `binary64`-to-string conversion.
+They may disagree on
+
+* the scale at which to switch from fixed to scientific notation, and
+* how many trailing 0's to display (including whether to force a `.` to display a trailing 0 in the 10^(-1) position).
+
+However, there is strong alignment on a) how many non-zero digits to emit, and b) what those non-zero digits must be.
+
+If required, it is possible to make the necessary adjustments in a post-processing step, which does not require big tables nor fancy tricks.
+That said, languages targeting JavaScript environments tend to accept those small differences in exchange for the native conversion.
+
 ### "wasm:js-string" "toLowerCase"
 
 ```js
