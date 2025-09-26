@@ -47,7 +47,6 @@ In the expanded specifications below, we will mark the functions that we conside
     * Type test: `test`
     * Identity test: `equals`
     * (creation is achieved by importing the functions `Symbol` and `Symbol.for`)
-    * Extraction of the `description`
 * Bigint (`wasm:js-bigint`):
     * Type test: `test`
     * Create from primitive: `fromF64`, `fromI64`, `fromU64`
@@ -400,21 +399,6 @@ func equals(
 }
 ```
 
-### "wasm:js-symbol" "description"
-
-```js
-func description(
-  x: externref
-) -> externref {
-  if (typeof x !== "symbol")
-    return trap();
-  const description = x.description;
-  if (typeof description === 'undefined')
-    return null;
-  return description;
-}
-```
-
 ### "wasm:js-bigint" "test"
 
 ```js
@@ -609,3 +593,8 @@ These can be imported as is.
 Extraction of the key of a symbol is, on a naive look similar: `Symbol.keyFor` can be imported as is.
 However, it returns `undefined` when the given symbol has no associated key.
 `undefined` can be tested after the fact with `"wasm:js-undefined" "test"`.
+
+A case could be made to provide a builtin to extract the `[[Description]]` of a symbol.
+In JavaScript, we do this with the accessor `Symbol.prototype.description`.
+However, compared to the rest of `"wasm:js-symbol"`, it looks out of place.
+It is unlikely that getting the description of a symbol would be on a performance-sensitive path, so we leave it out.
