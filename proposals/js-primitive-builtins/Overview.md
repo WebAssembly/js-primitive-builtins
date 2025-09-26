@@ -89,19 +89,7 @@ For more context, you may want to revisit [the notes](https://github.com/WebAsse
 
 ## Open questions
 
-### `toString` with radix for `i32` and `i64`
-
-Should we expose the integer ormatting methods that take an explicit radix?
-
-For `i32`, this corresponds to `Number.prototype.toString(radix)`.
-V8 already contains dedicated code to recognize it, when hidden behind a bound `Function.prototype.call`; that suggests that there is already a strong incentive to support conversion of `i32` to string with radix as a builtin.
-
-For `i64`, that is not technically supported by JS today.
-JS does not have radix support for `bigint`s, and the way `i64` features are justified in this proposal is that they are presented as `bigint`s on the JS side.
-
-The inconcistency between `i32` and `i64` suggests *not* to include them at this time.
-
-Regardless, it is not a goal to provide full `bigint` support here.
+...
 
 ## Specifications
 
@@ -584,6 +572,24 @@ However, that was not deemed a good enough benefit.
 These operators may receive (partial) support from dedicated hardward instructions: `fprem` for `x % y`, and the ARM-specific `FJCVTZS` for `x | 0`.
 They could therefore be useful as builtins.
 However, if we wanted to expose them to Wasm, actual Wasm opcodes would probably be a better avenue.
+
+### `toString` with radix for `i32` and `i64`
+
+JavaScript provides conversion of number values to string with a specific radix, through `Number.prototype.toString`.
+For example, `x.toString(16)`.
+It is not importable as is, since it is a prototype method that requires access to the `this` value.
+
+We considered adding a builtin for that.
+V8 already contains dedicated code to recognize it, when hidden behind a bound `Function.prototype.call`.
+That suggests that there is an incentive to support conversion of `i32` to string with radix as a builtin.
+
+However, JS does not have support for converting `bigint`s with a specific radix.
+Since our `i64` operations rely on `bigint` support, it means we cannot provide direct support for converting an `i64` with a radix.
+For consistency, it seems best to leave the `i32` variant off the table as well.
+
+Other than base 10, the only common bases are powers of 2 (namely 2, 8 and 16).
+The latter are easy to efficiently implement in user-space, and the former is supported by `"fromI32"` and `"fromI64"`.
+Therefore it should not be a real limitation.
 
 ### More on Symbols
 
