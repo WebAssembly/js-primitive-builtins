@@ -88,7 +88,22 @@ For more context, you may want to revisit [the notes](https://github.com/WebAsse
 
 ## Open questions
 
-...
+### Symbol equality
+
+We introduce a `"wasm:js-symbol" "equals"` to test equality of symbol primitives.
+We do this by analogy with `"wasm:js-string" "equals"`, which was already specified as part of the JS String Builtins proposal.
+
+However, it has been argued that is nothing but a special-case of `Object.is`, which is importable as is.
+The same argument could have been made about `"wasm:js-string" "equals"`, though, and yet, it was included.
+
+So it is unclear what to do.
+Should we have symbol equality for consistency with strings?
+Or should we remove it on the grounds that it can be done with `Object.is`?
+
+Was there a definite performance advantage to `"wasm:js-string" "equals"`, owing to knowledge that *only* strings need to be handled?
+If yes, that would support doing the same for symbols.
+
+See [#1](https://github.com/WebAssembly/js-primitive-builtins/issues/1) for more context.
 
 ## Specifications
 
