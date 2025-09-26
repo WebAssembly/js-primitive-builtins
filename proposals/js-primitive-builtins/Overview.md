@@ -53,7 +53,6 @@ In the expanded specifications below, we will mark the functions that we conside
     * Extract to primitive: `convertToF64`, `wrapToI64`
     * Operations: `add`, `pow`, `shl`, etc. (the ones corresponding to JS operators)
     * Wrapping operations: `asIntN`, `asUintN`
-    * Parsing: `parse`
     * Conversion to string: `toString`
 
 ## About the "universal representation"
@@ -517,27 +516,6 @@ func asUintN(
 }
 ```
 
-### "wasm:js-bigint" "parse"
-
-```js
-func parse(
-  string: externref
-) -> f64 {
-  if (typeof string !== "string")
-    trap();
-
-  // NOTE: ToBitInt(argument) throws a SyntaxError if the string is not a valid
-  // integer string. However, that is not easy to test ahead of time. So we
-  // catch the SyntaxError instead to turn it into a Wasm trap.
-  try {
-    return BigInt(string);
-  } catch (e) {
-    // Assert: e instanceof SyntaxError
-    trap();
-  }
-}
-```
-
 ### "wasm:js-bigint" "toString"
 
 ```js
@@ -566,6 +544,11 @@ Likewise, we had considered methods of `Math` like `Math.sin`.
 Caveat for `parseFloat` and `parseInt`: they may have to invoke arbitrary user-defined JS code through `ToString()` of their string argument.
 Their builtin equivalent could have avoided that by only accepting real `string`s instead.
 However, that was not deemed a good enough benefit.
+
+Parsing `bigint`s is similarly possible by importing `BigInt` and calling it with a `string` argument.
+That one *throws* a JS exception (a `SyntaxError`) if the argument is not a valid big integer.
+This is unusual for Wasm, but is not unheard of.
+In fact, it may be useful for the surrounding Wasm code to catch that exception and turn it into a language-dependent signal, as it is annoying to test the validity ahead of time.
 
 ### JS operators `x % y` and `x | 0`
 
