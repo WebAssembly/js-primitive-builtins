@@ -86,6 +86,23 @@ There is more discussion on this topic in [issue #6](https://github.com/WebAssem
 
 ## Open questions
 
+### `externref` or `anyref`
+
+As shown above, the typical use case for this proposal manipulates `anyref` as a universal representation.
+Indeed, while we focus here on the primitives that JS must understand, most values in the universal representation remain Wasm `struct`s.
+
+Yet, the builtins we propose here manipulate `externref`s, because the JS string builtins set `externref` as a precedent.
+
+For consistency, `externref` is better.
+But in pratice, it means toolchains will need to insert `any.convert_extern` and `extern.convert_any` after/before every call to the builtins presented here.
+This has a code size cost, but maybe it will also have a run-time cost.
+
+We expect actual experimentation in a (reasonably) optimizing compiler to settle the performance question.
+If it turns out that there is no cost to using `externref` over `anyref`, we should probably stick with `externref`.
+Otherwise, we may want to reconsider during Phase 3.
+
+See [#27](https://github.com/WebAssembly/js-primitive-builtins/issues/27) for a discussion.
+
 ### Symbol equality
 
 We introduce a `"wasm:js-symbol" "equals"` to test equality of symbol primitives.
