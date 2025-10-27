@@ -23,8 +23,7 @@ Builtins should be simple and only provide functionality that is semantically al
 
 The proposed list of builtins is based on experience with the Scala.js-to-Wasm compiler.
 Through benchmarking and profiling, we have identified a number of operations that show up high on profiles for no good reason, other than they require glue code to JavaScript.
-We have extrapolated to some additional operations that we think are likely relevant to other toolchains.
-The `bigint` were requested by the `wasm_of_caml` toolchain.
+We have extrapolated to operations that we think are likely relevant to other toolchains: conversions of *unsigned* integers (Scala happens to only have signed integer semantics in hot paths, but this is quite peculiar), and symbol equality (though that is still an open question).
 
 Here is a quick overview of the builtins we propose.
 The original set was fairly broad, so that we could discuss what is actually useful and what might be overreaching.
@@ -50,10 +49,7 @@ During Stage 1 discussions, the set was significantly reduced.
     * (creation is achieved by importing the functions `Symbol` and `Symbol.for`)
 * Bigint (`wasm:js-bigint`):
     * Type test: `test`
-    * Create from primitive: `fromF64`, `fromI64`, `fromU64`
-    * Extract to primitive: `convertToF64`, `wrapToI64`
-    * Operations: `add`, `pow`, `shl`, etc. (the ones corresponding to JS operators)
-    * Conversion to string: `toString`
+    * (all other manipulations lacked motivation and were removed)
 
 ## About the "universal representation"
 
@@ -426,145 +422,6 @@ func test(
 }
 ```
 
-### "wasm:js-bigint" "fromF64"
-
-```js
-func fromF64(
-  x: f64
-) -> (ref extern) {
-  // NOTE: BigInt(x) would throw a RangeError in the situation below.
-  // Trap instead.
-  if (!Number.isInteger(x))
-    trap();
-
-  return BigInt(x);
-}
-```
-
-### "wasm:js-bigint" "fromI64"
-
-```js
-func fromI64(
-  x: i64
-) -> (ref extern) {
-  // NOTE: `x` is interpreted as a signed JS `bigint` by the Wasm-to-JS
-  // interface, so this appears as a no-op.
-  return x;
-}
-```
-
-### "wasm:js-bigint" "fromU64"
-
-```js
-func fromU64(
-  x: i64
-) -> (ref extern) {
-  // NOTE: `x` is interpreted as a signed JS `bigint` by the Wasm-to-JS
-  // interface. Reinterpret it as unsigned.
-  return BigInt.asUint(64, x);
-}
-```
-
-### "wasm:js-bigint" "convertToF64"
-
-```js
-func convertToF64(
-  x: externref
-) -> f64 {
-  if (typeof x !== "bigint")
-    trap();
-
-  return Number(x);
-}
-```
-
-### "wasm:js-bigint" "wrapToI64"
-
-```js
-func wrapToI64(
-  x: externref
-) -> i64 {
-  if (typeof x !== "bigint")
-    trap();
-
-  // NOTE: ToWebAssemblyValue specifies a wrapping conversion via ToBigInt64
-  return x;
-}
-```
-
-A hypothetical `wrapToU64` would be equivalent, and is therefore not proposed.
-
-### "wasm:js-bigint" "add" (and other JS operators)
-
-```js
-func add(
-  x: externref,
-  y: externref
-) -> f64 {
-  if (typeof x !== "bigint")
-    trap();
-  if (typeof y !== "bigint")
-    trap();
-
-  return x + y;
-}
-```
-
-The full list of considered operators and corresponding function names are the following.
-See [Table 2 in Numeric Types](https://262.ecma-international.org/#sec-numeric-types) in the ECMAScript specification.
-
-| JS operator | Builtin name |
-|-------------|--------------|
-| `-x`        | `neg`        |
-| `~x`        | `not`        |
-| `x ** y`    | `pow`        |
-| `x * y`     | `mul`        |
-| `x / y`     | `div`        |
-| `x % y`     | `mod`        |
-| `x + y`     | `add`        |
-| `x - y`     | `sub`        |
-| `x << y`    | `shl`        |
-| `x >> y`    | `sar`        |
-| `x === y`   | `equals`     |
-| `x & y`     | `and`        |
-| `x ^ y`     | `xor`        |
-| `x \| y`    | `or`         |
-
-### "wasm:js-bigint" "compare"
-
-For consistency with JS String Builtins, we provide a single comparison builtin instead of the 4 operators `<`, `>`, `<=` and `>=`.
-
-```js
-func compared(
-  x: externref,
-  y: externref
-) -> f64 {
-  if (typeof x !== "bigint")
-    trap();
-  if (typeof y !== "bigint")
-    trap();
-
-  if (x < y)
-    return -1;
-  if (x > y)
-    return 1;
-  return 0;
-}
-```
-
-### "wasm:js-bigint" "toString"
-
-```js
-func toString(
-  bigint: externref
-) -> f64 {
-  if (typeof bigint !== "bigint")
-    trap();
-
-  return "" + bigint;
-}
-```
-
 ## Not included
 
 This section keeps track of a few things that were considered at some point but removed, although a case could still be made to bring them back.
@@ -623,3 +480,16 @@ A case could be made to provide a builtin to extract the `[[Description]]` of a 
 In JavaScript, we do this with the accessor `Symbol.prototype.description`.
 However, compared to the rest of `"wasm:js-symbol"`, it looks out of place.
 It is unlikely that getting the description of a symbol would be on a performance-sensitive path, so we leave it out.
+
+### `bigint` operations
+
+Initially, this proposal considered operations on `bigint`s (besides the type test).
+The following operations were considered:
+
+* Bigint (`wasm:js-bigint`):
+    * Create from primitive: `fromF64`, `fromI64`, `fromU64`
+    * Extract to primitive: `convertToF64`, `wrapToI64`
+    * Operations: `add`, `pow`, `shl`, etc. (the ones corresponding to JS operators)
+    * Conversion to string: `toString`
+
+This was based on the assumption that some toolchains would use them in hot paths, but that was apparently a misunderstanding (see [#24](https://github.com/WebAssembly/js-primitive-builtins/issues/24)), so we removed them.
