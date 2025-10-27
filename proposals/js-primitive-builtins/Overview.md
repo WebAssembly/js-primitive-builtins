@@ -99,7 +99,7 @@ This has a code size cost, but maybe it will also have a run-time cost.
 
 We expect actual experimentation in a (reasonably) optimizing compiler to settle the performance question.
 If it turns out that there is no cost to using `externref` over `anyref`, we should probably stick with `externref`.
-Otherwise, we may want to reconsider during Phase 3.
+Otherwise, we may want to reconsider during experimentation.
 
 See [#27](https://github.com/WebAssembly/js-primitive-builtins/issues/27) for a discussion.
 
