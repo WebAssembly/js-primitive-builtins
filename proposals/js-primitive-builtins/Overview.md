@@ -39,7 +39,7 @@ During Stage 1 discussions, the set was significantly reduced.
 * Boolean (`wasm:js-boolean`):
     * Type test: `test`
     * (creation is efficiently achieved by importing `true` and `false` as `global`s)
-    * Extract to primitive: `toI32`
+    * Extract to primitive: `cast`
 * Undefined (`wasm:js-undefined`):
     * Type test: `test`
     * (creation is efficiently achieved by importing `void 0` as a `global`)
@@ -373,10 +373,10 @@ func test(
 }
 ```
 
-### "wasm:js-boolean" "toI32"
+### "wasm:js-boolean" "cast"
 
 ```js
-func toI32(
+func cast(
   x: externref
 ) -> i32 {
   if (typeof x !== "boolean")
@@ -387,6 +387,9 @@ func toI32(
   return 0;
 }
 ```
+
+Initially we called this builtin `"toI32"`.
+In [#22](https://github.com/WebAssembly/js-primitive-builtins/issues/22), it was argued that `i32` can be seen as the canonical Wasm type corresponding to a JS boolean, and that therefore `cast` is better name.
 
 ### "wasm:js-undefined" "test"
 
