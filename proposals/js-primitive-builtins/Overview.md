@@ -31,7 +31,6 @@ During Stage 1 discussions, the set was significantly reduced.
 
 * String (extensions to the existing `wasm:js-string`):
     * Conversion from primitive numeric types: `fromI32`, `fromU32`, `fromI64`, `fromU64`, `fromF64`
-    * Unicode-aware case conversions: `toLowerCase`, `toUpperCase`
 * Number (`wasm:js-number`):
     * Type test: `test`, `testI32`, `testU32`
     * Create from primitive: `fromF64`, `fromI32`, `fromU32`
@@ -196,37 +195,6 @@ However, there is strong alignment on a) how many non-zero digits to emit, and b
 
 If required, it is possible to make the necessary adjustments in a post-processing step, which does not require big tables nor fancy tricks.
 That said, languages targeting JavaScript environments tend to accept those small differences in exchange for the native conversion.
-
-### "wasm:js-string" "toLowerCase"
-
-```js
-func toLowerCase(
-  string: externref
-) -> (ref extern) {
-  if (typeof string !== "string")
-    trap();
-
-  return string.toLowerCase();
-}
-```
-
-### "wasm:js-string" "toUpperCase"
-
-```js
-func toUpperCase(
-  string: externref
-) -> (ref extern) {
-  if (typeof string !== "string")
-    trap();
-
-  return string.toUpperCase();
-}
-```
-
-We include specifically `toLowerCase()` and `toUpperCase()`, but not the plethora of other methods of strings.
-Other methods can already be efficiently implemented using the existing builtins in `js-string`, on the Wasm side.
-The Unicode-aware case conversions (using the ROOT locale) require to embed a significant subset of the Unicode database.
-That's not something we want to ship along with our Wasm payloads.
 
 ### "wasm:js-number" "test"
 
@@ -486,6 +454,17 @@ For consistency, it seems best to leave the `i32` variant off the table as well.
 Other than base 10, the only common bases are powers of 2 (namely 2, 8 and 16).
 The latter are easy to efficiently implement in user-space, and the former is supported by `"fromI32"` and `"fromI64"`.
 Therefore it should not be a real limitation.
+
+### String case conversions
+
+We considered builtins for `toLowerCase()` and `toUpperCase()`, but not the plethora of other methods of strings.
+Other methods can already be efficiently implemented using the existing builtins in `js-string`, on the Wasm side.
+The Unicode-aware case conversions (using the ROOT locale) require to embed a significant subset of the Unicode database.
+That's not something we want to ship along with our Wasm payloads.
+
+However, in [#21](https://github.com/WebAssembly/js-primitive-builtins/issues/21), it was argued that those methods would likely not receive any more optimization than a function call.
+Arguably, they can be imported through the `String.prototype.toLowerCase.call.bind` trick.
+Eventually, it would be nicer if we had a standard way to import functions with a receiver into Wasm.
 
 ### More on Symbols
 
